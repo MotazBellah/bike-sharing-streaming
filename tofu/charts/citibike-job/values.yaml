@@ -1,0 +1,30 @@
+image: citibike-flink:local
+imagePullPolicy: Never
+flinkVersion: v1_20
+parallelism: 2
+
+# PyFlink jobs are launched through Flink's Python driver jar, not directly.
+# The filename carries the base image's exact patch version, so re-check it
+# after any base image bump:
+#   docker run --rm citibike-flink:local ls /opt/flink/opt | grep python
+pythonJar: local:///opt/flink/opt/flink-python-1.20.5.jar
+pythonModule: flink_job.job
+pythonFiles: /opt/flink/usrlib
+
+kafka:
+  brokers: redpanda:9093
+  topic: citibike-events
+  groupId: citibike-flink
+
+redis:
+  host: redis
+  port: 6379
+
+jobManager:
+  memory: 1024m
+  cpu: 0.5
+
+taskManager:
+  memory: 1536m
+  cpu: 0.5
+  slots: 2

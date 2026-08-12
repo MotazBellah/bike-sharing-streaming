@@ -1,0 +1,85 @@
+name: citibike-pipeline
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --node-id=0
+      - --kafka-addr=INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:19092
+      # Internal listener for containers, external one for the generator on the host.
+      - --advertise-kafka-addr=INTERNAL://redpanda:29092,EXTERNAL://localhost:19092
+      - --check=false
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  jobmanager:
+    build:
+      context: .
+      dockerfile: flink_job/Dockerfile
+    image: citibike-flink:local
+    # Application mode: the cluster exists to run this one job, which is the
+    # same lifecycle the Kubernetes Operator gives us in the minikube deploy.
+    command: standalone-job --pyModule flink_job.job --pyFiles /opt/flink/usrlib
+    ports:
+      - "8081:8081"
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      KAFKA_TOPIC: citibike-events
+      REDIS_HOST: redis
+      FLINK_PARALLELISM: "2"
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        parallelism.default: 2
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  taskmanager:
+    image: citibike-flink:local
+    command: taskmanager
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      KAFKA_TOPIC: citibike-events
+      REDIS_HOST: redis
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    depends_on:
+      - jobmanager
+    deploy:
+      replicas: 1
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: citibike-api:local
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      redis:
+        condition: service_healthy

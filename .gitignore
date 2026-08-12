@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Data files are not part of the deliverable
+*.csv
+*.zip
+*-citibike-tripdata/
+
+# OpenTofu / Terraform
+tofu/.terraform/
+tofu/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*

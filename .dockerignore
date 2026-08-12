@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+.git/
+
+# Never bake data into an image
+*.csv
+*.zip
+*-citibike-tripdata/
+
+tofu/
+docs/
+README.md
+CHALLENGE.md
+
+# Tests now live beside the code they cover, inside the directories the
+# Dockerfiles COPY — so they must be excluded by pattern, not by path.
+**/tests/

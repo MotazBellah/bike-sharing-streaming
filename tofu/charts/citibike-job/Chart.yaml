@@ -1,0 +1,9 @@
+apiVersion: v2
+name: citibike-job
+description: >-
+  Wraps the FlinkDeployment custom resource. Exists only so OpenTofu can create
+  a CR whose CRD is installed in the same apply — see tofu/flink.tf for why
+  kubernetes_manifest cannot be used here.
+type: application
+version: 0.1.0
+appVersion: "1.0"

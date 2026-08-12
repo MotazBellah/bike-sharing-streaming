@@ -1,0 +1,61 @@
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: citibike-aggregator
+  namespace: {{ .Release.Namespace }}
+spec:
+  image: {{ .Values.image }}
+  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  flinkVersion: {{ .Values.flinkVersion }}
+  # Created by the flink-kubernetes-operator chart in its watched namespaces.
+  serviceAccount: flink
+
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "{{ .Values.taskManager.slots }}"
+    # Checkpoints are what make the at-least-once Redis sink safe: on recovery
+    # the job rewinds to the last checkpoint and replays, and because every
+    # write restates an absolute value, Redis converges rather than corrupting.
+    execution.checkpointing.interval: "30s"
+    execution.checkpointing.mode: "EXACTLY_ONCE"
+    state.backend.type: "hashmap"
+
+  podTemplate:
+    spec:
+      containers:
+        - name: flink-main-container
+          env:
+            - name: KAFKA_BROKERS
+              value: "{{ .Values.kafka.brokers }}"
+            - name: KAFKA_TOPIC
+              value: "{{ .Values.kafka.topic }}"
+            - name: KAFKA_GROUP_ID
+              value: "{{ .Values.kafka.groupId }}"
+            - name: REDIS_HOST
+              value: "{{ .Values.redis.host }}"
+            - name: REDIS_PORT
+              value: "{{ .Values.redis.port }}"
+            - name: FLINK_PARALLELISM
+              value: "{{ .Values.parallelism }}"
+
+  jobManager:
+    resource:
+      memory: {{ .Values.jobManager.memory }}
+      cpu: {{ .Values.jobManager.cpu }}
+
+  taskManager:
+    resource:
+      memory: {{ .Values.taskManager.memory }}
+      cpu: {{ .Values.taskManager.cpu }}
+
+  job:
+    jarURI: {{ .Values.pythonJar }}
+    entryClass: org.apache.flink.client.python.PythonDriver
+    args:
+      - "-pyfs"
+      - "{{ .Values.pythonFiles }}"
+      - "-pym"
+      - "{{ .Values.pythonModule }}"
+    parallelism: {{ .Values.parallelism }}
+    # State is rebuildable by replaying the topic, so there is no savepoint to
+    # preserve across upgrades.
+    upgradeMode: stateless
