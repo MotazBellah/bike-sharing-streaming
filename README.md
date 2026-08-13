@@ -56,7 +56,7 @@ station id, since the pipeline only learns stations that appear in the stream.
 ## Deploying to minikube
 
 ```bash
-minikube start --cpus=4 --memory=8192
+minikube start --cpus=4 --memory=16192
 make deploy
 ```
 
@@ -76,6 +76,22 @@ been applied. `depends_on` does not help, because plan runs before any apply. Th
 CR is therefore wrapped in a small local Helm chart
 ([`tofu/charts/citibike-job`](tofu/charts/citibike-job)) and installed via
 `helm_release`, which only contacts the cluster during apply.
+
+**Accessing the API locally.** The `citibike-api` service is a `NodePort`
+(port 30080), so on Linux you can hit it directly at
+`http://$(minikube ip):30080`. On macOS/Windows the minikube VM/container
+network usually isn't reachable that way, so port-forward instead:
+
+```bash
+kubectl -n citibike port-forward svc/citibike-api 8000:8000
+curl localhost:8000/stations/busiest
+```
+
+The Flink dashboard can be reached the same way:
+
+```bash
+kubectl -n citibike port-forward svc/citibike-aggregator-rest 8081:8081
+```
 
 Tear down with `make destroy`.
 

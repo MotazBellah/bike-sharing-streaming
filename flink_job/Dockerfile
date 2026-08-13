@@ -1,5 +1,3 @@
-# Builds natively on both amd64 and arm64, so a minikube cluster on Apple
-# Silicon runs it without emulation.
 FROM flink:1.20-scala_2.12-java17
 
 # The Flink base image has no Python runtime; PyFlink needs one.

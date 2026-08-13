@@ -32,13 +32,13 @@ generate: ## Publish events (CSV=path/to/file.csv)
 	uv run --group generator python event_generator.py --file $(CSV) --topic $(TOPIC) --broker $(BROKER)
 
 images: ## Build images and side-load them into minikube
-	docker build -t citibike-flink:local -f flink_job/Dockerfile .
-	docker build -t citibike-api:local -f api/Dockerfile .
+	podman build -t citibike-flink:local -f flink_job/Dockerfile .
+	podman build -t citibike-api:local -f api/Dockerfile .
 # Loading via a tar rather than `minikube image load <name>`: with the podman
 # driver minikube cannot see the local image store directly, and podman
 # namespaces local builds under localhost/, so a bare name is never found.
-	docker save --format docker-archive -o /tmp/citibike-flink.tar citibike-flink:local
-	docker save --format docker-archive -o /tmp/citibike-api.tar citibike-api:local
+	podman save --format docker-archive -o /tmp/citibike-flink.tar citibike-flink:local
+	podman save --format docker-archive -o /tmp/citibike-api.tar citibike-api:local
 	minikube image load /tmp/citibike-flink.tar
 	minikube image load /tmp/citibike-api.tar
 	rm -f /tmp/citibike-flink.tar /tmp/citibike-api.tar
