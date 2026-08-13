@@ -87,6 +87,7 @@ resource "helm_release" "citibike_job" {
   depends_on = [
     helm_release.flink_operator,
     kubernetes_service.redpanda,
+    kubernetes_job.create_topic,
     kubernetes_service.redis,
   ]
 }
