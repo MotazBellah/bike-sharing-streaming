@@ -18,7 +18,7 @@ minikube and OpenTofu.
 make sync                      # uv installs deps, fetching Python 3.11 if needed
 make up                        # Redpanda, Flink (JM+TM), Redis, API
 make topic                     # 3 partitions (auto-create would give only 1)
- make generate CSV=202604-citibike-tripdata/202604-citibike-tripdata-part1.csv
+make generate CSV=202604-citibike-tripdata/202604-citibike-tripdata-part1.csv
 ```
 
 Then:
