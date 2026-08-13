@@ -18,20 +18,7 @@ minikube and OpenTofu.
 make sync                      # uv installs deps, fetching Python 3.11 if needed
 make up                        # Redpanda, Flink (JM+TM), Redis, API
 make topic                     # 3 partitions (auto-create would give only 1)
-make generate CSV=202604-citibike-tripdata.csv
-```
-
-`make topic` matters: an auto-created topic gets a single partition, which pins
-the source to one subtask and hides any cross-partition ordering behaviour. The
-job is designed for a partitioned topic — see the trip-stats section below.
-
-The generator loads the **entire** CSV into memory and sorts it before
-publishing, so a full month (~190MB, ~2M rows) needs several GB of RAM. Start
-with a slice:
-
-```bash
-head -50000 202604-citibike-tripdata/202604-citibike-tripdata-part1.csv > sample.csv
-make generate CSV=sample.csv
+ make generate CSV=202604-citibike-tripdata/202604-citibike-tripdata-part1.csv
 ```
 
 Then:

@@ -38,6 +38,41 @@ fast no matter how much data has flowed through.
 
 ---
 
+## 3. Why Flink (and not a plain Python service)
+
+A plain Python service doing `for event in stream: totals[station] += 1` works
+right up until something goes wrong — the process dies, a pod restarts, events
+arrive out of order. Then you're stuck writing your own checkpointing,
+recovery, and ordering logic by hand. Flink exists because it already solved
+that class of problem:
+
+- **Fault tolerance.** Flink periodically takes a checkpoint — a consistent
+  snapshot of both its internal state (the running totals) and its position in
+  the Redpanda topic (the offset), written to durable storage. If a Flink
+  worker crashes, it restarts from the last checkpoint and replays only the
+  events since then, so no counts are lost or double-counted. A bare Python
+  script has none of this — a crash mid-loop just loses whatever wasn't
+  flushed.
+- **Out-of-order events.** Events don't always arrive in the order they
+  happened (network delays, retries, partition skew). Flink handles this with
+  **event-time processing and watermarks** — it tracks progress by the
+  timestamp on the event itself, not by arrival order, and uses watermarks to
+  decide how long to wait for late data before finalizing a window. A naive
+  Python loop just processes whatever comes off the socket next, so
+  out-of-order events silently corrupt the aggregate.
+- **Checkpointing and state, together.** The running totals *are* Flink's
+  state, and that state is versioned by the checkpoint alongside the offset.
+  That's what makes "replay from offset 0 rebuilds the view exactly" (section
+  1) actually true — state and position always move together. In a hand-rolled
+  service, you'd have to build and test that guarantee yourself.
+
+In short: a Python service can express "add one to a counter" just as easily.
+What it can't give you for free is the guarantee that the counter stays
+correct across crashes, restarts, and out-of-order data — that's the part
+Flink is actually buying.
+
+---
+
 ## 4. What would change in production
 
 
