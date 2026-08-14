@@ -1,7 +1,6 @@
 # Citibike Streaming Pipeline
 
-Ingests Citibike trip events from Redpanda, aggregates them in PyFlink, and serves
-the results from Redis over HTTP with sub-millisecond reads.
+Ingests Citibike trip events from Redpanda, aggregates them in PyFlink, and serves the results from Redis over HTTP.
 
 ```
 event_generator.py → Redpanda → PyFlink → Redis → FastAPI
@@ -76,11 +75,9 @@ been applied. `depends_on` does not help, because plan runs before any apply. Th
 CR is therefore wrapped in a small local Helm chart
 ([`tofu/charts/citibike-job`](tofu/charts/citibike-job)) and installed via
 `helm_release`, which only contacts the cluster during apply.
+(This is the same way I deployed Flink in my current company)
 
-**Accessing the API locally.** The `citibike-api` service is a `NodePort`
-(port 30080), so on Linux you can hit it directly at
-`http://$(minikube ip):30080`. On macOS/Windows the minikube VM/container
-network usually isn't reachable that way, so port-forward instead:
+**Accessing the API locally.** Using port-forward
 
 ```bash
 kubectl -n citibike port-forward svc/citibike-api 8000:8000
@@ -102,11 +99,8 @@ Tear down with `make destroy`.
 ```bash
 make test
 ```
-
-The aggregation logic in [`aggregates.py`](flink_job/aggregates.py) is pure —
-no Flink, no Redis, no I/O — so the semantics that actually matter (balance
-direction, out-of-order guarding, sum/count means, duration parsing) are covered
-by fast unit tests. Flink operators own only state and timers.
+The aggregation logic in [`aggregates.py`](flink_job/aggregates.py) is kept separate 
+from the Flink operators, making the business logic easy to test independently without requiring Flink infrastructure.
 
 ## System design
 
